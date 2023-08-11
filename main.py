@@ -1,10 +1,13 @@
 import os
 import base64 
+import random
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 from fastapi import FastAPI
 from pydantic import BaseModel
+from PIL import Image
+from io import BytesIO
 
 app = FastAPI()
 
@@ -13,23 +16,34 @@ MODEL = tf.keras.models.load_model('models/resnet/ResnetModel.h5', custom_object
 unique_labels = ['bad', 'good']
 
 class ImageInput(BaseModel):
-    base64: str
+    base64_img: str
 
 @app.post('/predict/')
 async def predict(ImageInput: ImageInput):
-    code = ImageInput.base64
+    code = ImageInput.base64_img
+    random_number = random.randint(1, 99)
+    image_name = f"image_{random_number}.jpg"
+    print(image_name)
+    save_path = f"/cariety/tmp-imgs/{image_name}"
+    try:
+        image_data = base64.b64decode(code) 
+        image = Image.open(BytesIO(image_data))
+        image.save(save_path)
+        print(f"Image saved to '{save_path}'")
+    except Exception as e:
+        print(f"Error: {e}")
 
-    test_filenames = ["./images/" + file_name for file_name in os.listdir("./images/")]
+    test_filenames = ["/cariety/tmp-imgs/" + file_name for file_name in os.listdir("/cariety/tmp-imgs/")]
 
     custom_data = create_img_batches(test_filenames)
 
-    base64 = []
+    base64_array = []
 
     try:
       for image_path in test_filenames:
         base64_encoded = encode_image_to_base64(image_path)
         print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
-        base64.append(base64_encoded)
+        base64_array.append(base64_encoded)
     except Exception as e:
       print(f"Error: {e}")
 
@@ -37,7 +51,14 @@ async def predict(ImageInput: ImageInput):
 
     custom_prediction_labels = [get_predicted_label(prediction[i]) for i in range(len(prediction))]
 
-    return {"prediction": (test_filenames, base64, custom_prediction_labels)}
+    try:
+        os.remove(save_path)  # Remove the saved image
+        print(f"Image '{image_name}' removed.")
+    except Exception as e:
+        print(f"Error while removing image: {e}")
+
+
+    return {"prediction": (test_filenames, base64_array, custom_prediction_labels)}
 
 
 BATCH_SIZE = 32
