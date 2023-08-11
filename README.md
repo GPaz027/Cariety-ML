@@ -7,3 +7,4 @@
 * Install NumPy: `pip install numpy`
 * Install TensorFlow: `pip install tensorflow`
 * Install TensorFlow Hub: `pip install tensorflow_hub`
+* Install Pillow: `pip install Pillow`
