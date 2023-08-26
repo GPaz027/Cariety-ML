@@ -24,7 +24,6 @@ sys.path.append('./model')
 # /-------------------------------------------------------------- Definicion de Clases y Constantes --------------------------------------------------------------/
 
 ROOT_DIR = './'
-#SAVE_PATH = '/saved_images_temp'
 BATCH_SIZE = 32
 IMG_SIZE = 224
 
@@ -222,19 +221,6 @@ app = FastAPI()
 
 class ImageInput(BaseModel):
     base64_img: str
-
-""" s3_client = boto3.client('s3', aws_access_key_id="AKIA6FCF2WUG7EYP5SUM", aws_secret_access_key="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")
-
-try:
-  s3_client.download_file("cariety-yolo-storage", "ckpt_best.pth", 'yolo.pth')
-except Exception as e:
-  print(f'Error downloading file: {e}')
-
-YOLO_MODEL = models.get(
-    model_name='yolo_nas_s',
-    checkpoint_path= './yolo.pth',
-    num_classes = 1) """
-
 
 @app.post('/predict/')
 async def predict(ImageInput: ImageInput):
