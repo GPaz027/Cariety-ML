@@ -1,0 +1,9 @@
+train: /content/gdrive/MyDrive/yolo_data/images/train  # 118287 images 
+val: /content/gdrive/MyDrive/yolo_data/images/val  # 5000 images 
+test: /content/gdrive/MyDrive/yolo_data/images/test  # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794 
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'apple' ]
