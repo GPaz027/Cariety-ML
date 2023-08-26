@@ -26,6 +26,7 @@ sys.path.append('./model')
 ROOT_DIR = './'
 BATCH_SIZE = 32
 IMG_SIZE = 224
+MICROBACKEND_URL = 'http://localhost:3000/image'
 
 source_image_path = 'good1.jpeg'
 custom_data_path = 'custom_data.yaml'
@@ -266,8 +267,6 @@ async def predict(ImageInput: ImageInput):
           print(f"Image '{image_name}' removed.")
       except Exception as e:
           print(f"Error while removing image: {e}")
-
-      MICROBACKEND_URL = 'http://localhost:3000/image'
 
       print(np.argmax(prediction))
       var = str(np.max(prediction))
