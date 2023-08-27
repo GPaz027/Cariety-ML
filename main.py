@@ -207,7 +207,7 @@ def encode_image_to_base64(image_path):
 
 # /-------------------------------------------------------------- Carga de YOLO v7 --------------------------------------------------------------/
 
-detection_model = load_model()
+# detection_model = load_model()
 
 # /-------------------------------------------------------------- Carga de ResNet --------------------------------------------------------------/
 
@@ -239,49 +239,45 @@ async def predict(ImageInput: ImageInput):
         print(f"Error: {e}")
 
     # Filtro de YOLO 
-    detected_object = predict_image(save_path, detection_model)
-    box = get_image_position_if_valid(detected_object)
+    # detected_object = predict_image(save_path, detection_model)
+    # box = get_image_position_if_valid(detected_object)
     # Termina Yolo
 
-    if box:
+    # if box:
 
       # Comienza clasificación
-      test_filenames = ["./img_test/" + file_name for file_name in os.listdir("./img_test/")]
-      custom_data = create_img_batches(test_filenames)
-      base64_array = []
+    test_filenames = ["./img_test/" + file_name for file_name in os.listdir("./img_test/")]
+    custom_data = create_img_batches(test_filenames)
+    base64_array = []
 
-      try:
+    try:
         for image_path in test_filenames:
-          base64_encoded = encode_image_to_base64(image_path)
-          print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
-          base64_array.append(base64_encoded)
-      except Exception as e:
+            base64_encoded = encode_image_to_base64(image_path)
+            print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
+            base64_array.append(base64_encoded)
+    except Exception as e:
         print(f"Error: {e}")
 
-      prediction = classification_model.predict(custom_data)
-      print(prediction)
-      custom_prediction_labels = [get_predicted_label(prediction[i]) for i in range(len(prediction))]
+    prediction = classification_model.predict(custom_data)
+    print(prediction)
+    custom_prediction_labels = [get_predicted_label(prediction[i]) for i in range(len(prediction))]
 
-      try:
-          os.remove(save_path)  # Remove the saved image
-          print(f"Image '{image_name}' removed.")
-      except Exception as e:
-          print(f"Error while removing image: {e}")
+    try:
+        os.remove(save_path)  # Remove the saved image
+        print(f"Image '{image_name}' removed.")
+    except Exception as e:
+        print(f"Error while removing image: {e}")
 
-      print(np.argmax(prediction))
-      var = str(np.max(prediction))
-      print(var)
+    print(np.argmax(prediction))
+    var = str(np.max(prediction))
+    print(var)
 
-      json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
+    json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
 
-      status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
+    status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
       
-      print(status_code)
+    print(status_code)
 
-      return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
+    return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
     
-    else:
-       return "Invalid image"
-
-
 
