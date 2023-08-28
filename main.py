@@ -1,7 +1,7 @@
 import cv2
 import os
 import base64
-import boto3 
+import boto3
 import random
 import numpy as np
 import requests
@@ -38,6 +38,7 @@ unique_labels = ['bad', 'good']
 
 # /-------------------------------------------------------------- Metodos para YOLO v7 --------------------------------------------------------------/
 
+
 def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
     # Resize and pad image while meeting stride-multiple constraints
     shape = img.shape[:2]  # current shape [height, width]
@@ -52,13 +53,15 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     # Compute padding
     ratio = r, r  # width, height ratios
     new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
-    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
+    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - \
+        new_unpad[1]  # wh padding
     if auto:  # minimum rectangle
         dw, dh = np.mod(dw, stride), np.mod(dh, stride)  # wh padding
     elif scaleFill:  # stretch
         dw, dh = 0.0, 0.0
         new_unpad = (new_shape[1], new_shape[0])
-        ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
+        ratio = new_shape[1] / shape[1], new_shape[0] / \
+            shape[0]  # width, height ratios
 
     dw /= 2  # divide padding into 2 sides
     dh /= 2
@@ -67,21 +70,25 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
         img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    img = cv2.copyMakeBorder(
+        img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
     return img, ratio, (dw, dh)
 
-classes_to_filter = None  #You can give list of classes to filter by name, Be happy you don't have to put class number. ['train','person' ]
 
-opt  = {
+# You can give list of classes to filter by name, Be happy you don't have to put class number. ['train','person' ]
+classes_to_filter = None
 
-    "weights": weights_path, # Path to weights file default weights are for nano model
-    "yaml"   : custom_data_path,
-    "img-size": 640, # default image size
-    "conf-thres": 0.25, # confidence threshold for inference.
-    "iou-thres" : 0.45, # NMS IoU threshold for inference.
-    "device" : 'cpu',  # device to run our model i.e. 0 or 0,1,2,3 or cpu
-    "classes" : classes_to_filter  # list of classes to filter or None
+opt = {
+
+    "weights": weights_path,  # Path to weights file default weights are for nano model
+    "yaml": custom_data_path,
+    "img-size": 640,  # default image size
+    "conf-thres": 0.25,  # confidence threshold for inference.
+    "iou-thres": 0.45,  # NMS IoU threshold for inference.
+    "device": 'cpu',  # device to run our model i.e. 0 or 0,1,2,3 or cpu
+    "classes": classes_to_filter  # list of classes to filter or None
 }
+
 
 def save_image(base_64_image, relative_save_path):
     image_path = ROOT_DIR + relative_save_path + "/Resultado.jpg"
@@ -89,19 +96,21 @@ def save_image(base_64_image, relative_save_path):
     im.save(ROOT_DIR + relative_save_path + "/Resultado.jpg")
     return image_path
 
+
 def get_image_position_if_valid(box):
     """El parametro model_prediction es un ImagesDetectionPrediction que sale directamente del model.predict()"""
     IMG_MEDIUM = 512/2
-    
+
     medium_point = (box[0]+box[2])/2
-    if (True  or (medium_point < IMG_MEDIUM + 10 and medium_point > IMG_MEDIUM - 10)):
-        #string =Restnet.classify
+    if (True or (medium_point < IMG_MEDIUM + 10 and medium_point > IMG_MEDIUM - 10)):
+        # string =Restnet.classify
         return box
     else:
         return []
 
+
 def predict_image(path, model):
-    
+
     weights, imgsz = opt['weights'], opt['img-size']
     device = select_device(opt['device'])
     stride = int(model.stride.max())  # model stride
@@ -109,7 +118,7 @@ def predict_image(path, model):
     half = device.type != 'cpu'
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
-    
+
     img0 = cv2.imread(path)
     img = letterbox(img0, imgsz, stride=stride)[0]
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
@@ -119,84 +128,91 @@ def predict_image(path, model):
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
-        
+
     # Inference
     t1 = time_synchronized()
-    pred = model(img, augment= False)[0]
-    
+    pred = model(img, augment=False)[0]
+
     # Apply NMS
     classes = None
     if opt['classes']:
         classes = []
         for class_name in opt['classes']:
             classes.append(opt['classes'].index(class_name))
-            
-    pred = non_max_suppression(pred, opt['conf-thres'], opt['iou-thres'], classes= classes, agnostic= False)
+
+    pred = non_max_suppression(
+        pred, opt['conf-thres'], opt['iou-thres'], classes=classes, agnostic=False)
     t2 = time_synchronized()
     for i, det in enumerate(pred):
         s = ''
         s += '%gx%g ' % img.shape[2:]  # print string
         gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]
         if len(det):
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img0.shape).round()
-            
+            det[:, :4] = scale_coords(
+                img.shape[2:], det[:, :4], img0.shape).round()
+
             for c in det[:, -1].unique():
                 n = (det[:, -1] == c).sum()  # detections per class
                 s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                
+
             for *xyxy, conf, cls in reversed(det):
                 print(*xyxy)
                 label = f'{names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, img0, label=label, color=colors[int(cls)], line_thickness=3)
-                x1, y1, x2, y2 = xyxy[0].item(), xyxy[1].item(), xyxy[2].item(), xyxy[3].item()
+                plot_one_box(xyxy, img0, label=label,
+                             color=colors[int(cls)], line_thickness=3)
+                x1, y1, x2, y2 = xyxy[0].item(), xyxy[1].item(
+                ), xyxy[2].item(), xyxy[3].item()
             return [x1, y1, x2, y2]
+
 
 def load_model():
     with torch.no_grad():
-      weights, imgsz = opt['weights'], opt['img-size']
-      set_logging()
-      device = select_device(opt['device'])
-      half = device.type != 'cpu'
-      model = attempt_load(weights, map_location=device)  # load FP32 model
-      stride = int(model.stride.max())  # model stride
-      imgsz = check_img_size(imgsz, s=stride)  # check img_size
-      if half:
-        model.half()
+        weights, imgsz = opt['weights'], opt['img-size']
+        set_logging()
+        device = select_device(opt['device'])
+        half = device.type != 'cpu'
+        model = attempt_load(weights, map_location=device)  # load FP32 model
+        stride = int(model.stride.max())  # model stride
+        imgsz = check_img_size(imgsz, s=stride)  # check img_size
+        if half:
+            model.half()
 
-      names = model.module.names if hasattr(model, 'module') else model.names
-      colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
-      if device.type != 'cpu':
-        model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))
-      return model
+        names = model.module.names if hasattr(model, 'module') else model.names
+        colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+        if device.type != 'cpu':
+            model(torch.zeros(1, 3, imgsz, imgsz).to(
+                device).type_as(next(model.parameters())))
+        return model
 
 # /-------------------------------------------------------------- Metodos Auxiliares Clasificacion --------------------------------------------------------------/
 
+
 def get_predicted_label(prediction_probabilities):
-  """
-  Recibe un array de probabilidades y matchea la más alta con la label correspondiente.
-  """
-  return unique_labels[np.argmax(prediction_probabilities)]
+    """
+    Recibe un array de probabilidades y matchea la más alta con la label correspondiente.
+    """
+    return unique_labels[np.argmax(prediction_probabilities)]
 
 
 def preprocess_image(img_path, img_size=IMG_SIZE):
-  """
-  Recibe un path de una imagen y convierte a la misma en un Tensor.
-  """
-  image = tf.io.read_file(img_path)
-  image = tf.image.decode_jpeg(image, channels=3) 
-  image = tf.image.convert_image_dtype(image, tf.float32)
-  image = tf.image.resize(image, size=[img_size, img_size])
-  return image
+    """
+    Recibe un path de una imagen y convierte a la misma en un Tensor.
+    """
+    image = tf.io.read_file(img_path)
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.image.convert_image_dtype(image, tf.float32)
+    image = tf.image.resize(image, size=[img_size, img_size])
+    return image
 
 
 def create_img_batches(X, batch_size=BATCH_SIZE):
-  """
-  Crea batches a partir de una imagen (X) y su label (y).
-  """
-  print("Creando batches de test...")
-  data = tf.data.Dataset.from_tensor_slices(tf.constant(X))
-  data_batch = data.map(preprocess_image).batch(batch_size)
-  return data_batch
+    """
+    Crea batches a partir de una imagen (X) y su label (y).
+    """
+    print("Creando batches de test...")
+    data = tf.data.Dataset.from_tensor_slices(tf.constant(X))
+    data_batch = data.map(preprocess_image).batch(batch_size)
+    return data_batch
 
 
 def encode_image_to_base64(image_path):
@@ -211,17 +227,23 @@ def encode_image_to_base64(image_path):
 
 # /-------------------------------------------------------------- Carga de ResNet --------------------------------------------------------------/
 
-classification_model = tf.keras.models.load_model('classification/resnet/ResnetModel.h5', custom_objects={"KerasLayer":hub.KerasLayer})
+
+classification_model = tf.keras.models.load_model(
+    'classification/resnet/ResnetModel.h5', custom_objects={"KerasLayer": hub.KerasLayer})
 
 # /-------------------------------------------------------------- Endpoints FastAPI --------------------------------------------------------------/
 
+
 def send_image_to_microbakend(url, json):
-    return requests.post(url, json= json)
+    return requests.post(url, json=json)
+
 
 app = FastAPI()
 
+
 class ImageInput(BaseModel):
     base64_img: str
+
 
 @app.post('/predict/')
 async def predict(ImageInput: ImageInput):
@@ -231,22 +253,23 @@ async def predict(ImageInput: ImageInput):
     print(image_name)
     save_path = f"./img_test/{image_name}"
     try:
-        image_data = base64.b64decode(code) 
+        image_data = base64.b64decode(code)
         image = Image.open(BytesIO(image_data))
         image.save(save_path)
         print(f"Image saved to '{save_path}'")
     except Exception as e:
         print(f"Error: {e}")
 
-    # Filtro de YOLO 
+    # Filtro de YOLO
     # detected_object = predict_image(save_path, detection_model)
     # box = get_image_position_if_valid(detected_object)
     # Termina Yolo
 
     # if box:
 
-      # Comienza clasificación
-    test_filenames = ["./img_test/" + file_name for file_name in os.listdir("./img_test/")]
+        # Comienza clasificación
+    test_filenames = ["./img_test/" +
+                      file_name for file_name in os.listdir("./img_test/")]
     custom_data = create_img_batches(test_filenames)
     base64_array = []
 
@@ -260,7 +283,8 @@ async def predict(ImageInput: ImageInput):
 
     prediction = classification_model.predict(custom_data)
     print(prediction)
-    custom_prediction_labels = [get_predicted_label(prediction[i]) for i in range(len(prediction))]
+    custom_prediction_labels = [get_predicted_label(
+        prediction[i]) for i in range(len(prediction))]
 
     try:
         os.remove(save_path)  # Remove the saved image
@@ -272,12 +296,11 @@ async def predict(ImageInput: ImageInput):
     var = str(np.max(prediction))
     print(var)
 
-    json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
+    json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64," +
+            base64_array[0], "label": custom_prediction_labels[0], "prob": var}
 
     status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
-      
+
     print(status_code)
 
     return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
-    
-
