@@ -66,7 +66,9 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=3):
         c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
         cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
         cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
-        cv2.imwrite("img_test/Prueba.jpg",img)
+        random_number = random.randint(1, 99)
+        image_path = f"img_test/image_{random_number}.jpg"
+        cv2.imwrite(image_path, img)
 
 
 def plot_one_box_PIL(box, img, color=None, label=None, line_thickness=None):

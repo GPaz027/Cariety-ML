@@ -2,8 +2,24 @@ __pycache__
 
 utils/__pycache__
 
+
+img_test
+
 models/__pycache__
 models/__pycache__/__init__.cpython-310.pyc
 models/__pycache__/experimental.cpython-310.pyc
 models/__pycache__/common.cpython-310.pyc
+models/__pycache__/yolo.cpython-310.pyc
+utils/__pycache__/torch_utils.cpython-310.pyc
+utils/__pycache__/plots.cpython-310.pyc
+utils/__pycache__/metrics.cpython-310.pyc
+utils/__pycache__/loss.cpython-310.pyc
+utils/__pycache__/google_utils.cpython-310.pyc
+utils/__pycache__/general.cpython-310.pyc
+utils/__pycache__/datasets.cpython-310.pyc
+utils/__pycache__/autoanchor.cpython-310.pyc
+utils/__pycache__/__init__.cpython-310.pyc
+models/__pycache__/__init__.cpython-310.pyc
+models/__pycache__/common.cpython-310.pyc
+models/__pycache__/experimental.cpython-310.pyc
 models/__pycache__/yolo.cpython-310.pyc
