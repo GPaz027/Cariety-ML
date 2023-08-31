@@ -143,7 +143,6 @@ def predict_image(path, model):
             for c in det[:, -1].unique():
                 n = (det[:, -1] == c).sum()  # detections per class
                 s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                
             for *xyxy, conf, cls in reversed(det):
                 print(*xyxy)
                 label = f'{names[int(cls)]} {conf:.2f}'
@@ -253,7 +252,7 @@ async def predict(ImageInput: ImageInput):
       try:
         for image_path in test_filenames:
           base64_encoded = encode_image_to_base64(image_path)
-          print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
+          #print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
           base64_array.append(base64_encoded)
       except Exception as e:
         print(f"Error: {e}")
