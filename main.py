@@ -8,6 +8,7 @@ import requests
 import tensorflow as tf
 import tensorflow_hub as hub
 import torch
+from datetime import datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 import PIL
@@ -35,6 +36,9 @@ weights_path = 'best.pt'
 # device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
 unique_labels = ['bad', 'good']
+access_key = os.environ.get('AWS_ACCESS_KEY_ID')
+secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+access_token = os.environ.get('AWS_ACCESS_TOKEN')
 
 # /-------------------------------------------------------------- Metodos para YOLO v7 --------------------------------------------------------------/
 
@@ -221,6 +225,36 @@ def encode_image_to_base64(image_path):
         base64_encoded = base64.b64encode(image_data).decode("utf-8")
         return base64_encoded
 
+
+def persist_prediction(file, probability, label):
+    """
+    Recibe la predicción de una imagen y la persisten en una instancia de DynamoDB.
+    """
+    try:
+        dynamodb = boto3.client('dynamodb', aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                aws_session_token=access_token)
+        table_name = 'cariety'
+
+        now = int(datetime.now().timestamp())
+        timestamp = now
+
+        item = {
+            'timestamp': {'N': str(timestamp)},
+            'image_name': {'S': f"{file}"},
+            'probability': {'N': f"{probability}"},
+            'label': {'S': f"{label}"}
+        }
+
+        print(timestamp)
+
+        # Add the item to the table
+        dynamodb.put_item(
+            TableName=table_name,
+            Item=item
+        )
+    except Exception as e:
+        print(f"Error: {e}")
+
 # /-------------------------------------------------------------- Carga de YOLO v7 --------------------------------------------------------------/
 
 # detection_model = load_model()
@@ -229,7 +263,7 @@ def encode_image_to_base64(image_path):
 
 
 classification_model = tf.keras.models.load_model(
-    'classification/resnet/ResnetModel.h5', custom_objects={"KerasLayer": hub.KerasLayer})
+    'classification/resnet/FinalModel.h5', compile=False, custom_objects={"KerasLayer": hub.KerasLayer})
 
 # /-------------------------------------------------------------- Endpoints FastAPI --------------------------------------------------------------/
 
@@ -267,7 +301,7 @@ async def predict(ImageInput: ImageInput):
 
     # if box:
 
-        # Comienza clasificación
+    # Comienza clasificación
     test_filenames = ["./img_test/" +
                       file_name for file_name in os.listdir("./img_test/")]
     custom_data = create_img_batches(test_filenames)
@@ -283,8 +317,11 @@ async def predict(ImageInput: ImageInput):
 
     prediction = classification_model.predict(custom_data)
     print(prediction)
-    custom_prediction_labels = [get_predicted_label(
-        prediction[i]) for i in range(len(prediction))]
+    prediction = float(prediction[0][0])
+    if prediction >= 0.5:
+        custom_prediction_labels = "good"
+    else:
+        custom_prediction_labels = "bad"
 
     try:
         os.remove(save_path)  # Remove the saved image
@@ -292,15 +329,13 @@ async def predict(ImageInput: ImageInput):
     except Exception as e:
         print(f"Error while removing image: {e}")
 
-    print(np.argmax(prediction))
-    var = str(np.max(prediction))
-    print(var)
-
     json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64," +
-            base64_array[0], "label": custom_prediction_labels[0], "prob": var}
+            base64_array[0], "label": custom_prediction_labels, "prob": prediction}
+
+    persist_prediction(test_filenames, prediction, custom_prediction_labels)
 
     status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
 
     print(status_code)
 
-    return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels[0], "prob": var}
+    return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels, "prob": prediction}
