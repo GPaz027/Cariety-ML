@@ -33,6 +33,8 @@ source_image_path = 'good1.jpeg'
 custom_data_path = 'custom_data.yaml'
 weights_path = 'best.pt'
 
+N_CAMERAS = 3
+
 # device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
 unique_labels = ['bad', 'good']
@@ -255,6 +257,28 @@ def persist_prediction(file, probability, label):
     except Exception as e:
         print(f"Error: {e}")
 
+    
+def evaluate_unified_prediction(predictionMatrix):
+    all_images_good = True
+    unified_prediction = 0
+    for pred in predictionMatrix:
+        print (pred)
+        if pred[0] <0.5:
+            all_images_good = False
+            unified_prediction = pred[0]
+
+        if all_images_good:
+            return float(unified_prediction), "good"
+        else:
+            return float(unified_prediction), "bad"
+        
+def remove_all_inside_folder(folder_path):
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        os.remove(file_path)
+    print("images removed!")
+
+
 # /-------------------------------------------------------------- Carga de YOLO v7 --------------------------------------------------------------/
 
 # detection_model = load_model()
@@ -263,7 +287,7 @@ def persist_prediction(file, probability, label):
 
 
 classification_model = tf.keras.models.load_model(
-    'classification/resnet/FinalModel.h5', compile=False, custom_objects={"KerasLayer": hub.KerasLayer})
+    'classification/resnet/ResnetModel.h5', compile=False, custom_objects={"KerasLayer": hub.KerasLayer})
 
 # /-------------------------------------------------------------- Endpoints FastAPI --------------------------------------------------------------/
 
@@ -274,14 +298,20 @@ def send_image_to_microbakend(url, json):
 
 app = FastAPI()
 
+image_availablility_array = np.full(N_CAMERAS, False, dtype=bool) # Define la lista para saber si cada camara trajo la imagen
 
 class ImageInput(BaseModel):
     base64_img: str
+    camera_number: int
 
 
 @app.post('/predict/')
 async def predict(ImageInput: ImageInput):
     code = ImageInput.base64_img
+
+    camera_number = ImageInput.camera_number
+    image_availablility_array[camera_number] = True
+
     random_number = random.randint(1, 99)
     image_name = f"image_{random_number}.jpg"
     print(image_name)
@@ -301,41 +331,57 @@ async def predict(ImageInput: ImageInput):
 
     # if box:
 
-    # Comienza clasificación
-    test_filenames = ["./img_test/" +
-                      file_name for file_name in os.listdir("./img_test/")]
-    custom_data = create_img_batches(test_filenames)
-    base64_array = []
+    all_images_available = True
+    for i in image_availablility_array:
+        all_images_available = all_images_available and i
+    
+    if all_images_available:
+        # Comienza clasificación
+        test_filenames = ["./img_test/" +
+                        file_name for file_name in os.listdir("./img_test/")]
+        custom_data = create_img_batches(test_filenames)
+        base64_array = []
+        
+        for i in range(image_availablility_array.size):
+            image_availablility_array[i] = False
 
-    try:
-        for image_path in test_filenames:
-            base64_encoded = encode_image_to_base64(image_path)
-            print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
-            base64_array.append(base64_encoded)
-    except Exception as e:
-        print(f"Error: {e}")
+        try:
+            for image_path in test_filenames:
+                base64_encoded = encode_image_to_base64(image_path)
+                #print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
+                base64_array.append(base64_encoded)
+        except Exception as e:
+            print(f"Error: {e}")
 
-    prediction = classification_model.predict(custom_data)
-    print(prediction)
-    prediction = float(prediction[0][0])
-    if prediction >= 0.5:
-        custom_prediction_labels = "good"
-    else:
-        custom_prediction_labels = "bad"
+        prediction = classification_model.predict(custom_data)
+        print(prediction)
 
-    try:
-        os.remove(save_path)  # Remove the saved image
-        print(f"Image '{image_name}' removed.")
-    except Exception as e:
-        print(f"Error while removing image: {e}")
+        #Toma la clasificacion de todas las imagenes y hace una evaluacion final
+        unified_prediction, custom_prediction_labels = evaluate_unified_prediction(prediction) 
 
-    json = {"name": test_filenames[0], "base_64": "data:image/jpeg;base64," +
-            base64_array[0], "label": custom_prediction_labels, "prob": prediction}
+        try:
+            folder_path ="./img_test"
+            #Borra todas las imagenes generadas para la clasificacion
+            remove_all_inside_folder(folder_path)
+        except Exception as e:
+            print(f"Error while removing image: {e}")
 
-    persist_prediction(test_filenames, prediction, custom_prediction_labels)
+        json = {
+            "name": test_filenames[0],
+            "base_64": "data:image/jpeg;base64," + base64_array[0],
+            "label": custom_prediction_labels,
+            "prob": unified_prediction
+            }
 
-    status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
+        #persist_prediction(test_filenames, prediction, custom_prediction_labels)
 
-    print(status_code)
+        status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
 
-    return {"name": test_filenames[0], "base64": "data:image/jpeg;base64,"+base64_array[0], "label": custom_prediction_labels, "prob": prediction}
+        print(status_code)
+
+        return {
+            "name": test_filenames[0],
+            "base64": "data:image/jpeg;base64,"+base64_array[0],
+            "label": custom_prediction_labels, 
+            "prob": unified_prediction
+            }
