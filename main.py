@@ -287,7 +287,7 @@ def remove_all_inside_folder(folder_path):
 
 
 classification_model = tf.keras.models.load_model(
-    'classification/resnet/ResnetModel.h5', compile=False, custom_objects={"KerasLayer": hub.KerasLayer})
+    'classification/resnet/FinalModel.h5', compile=False, custom_objects={"KerasLayer": hub.KerasLayer})
 
 # /-------------------------------------------------------------- Endpoints FastAPI --------------------------------------------------------------/
 
