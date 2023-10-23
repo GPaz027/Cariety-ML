@@ -33,7 +33,7 @@ source_image_path = 'good1.jpeg'
 custom_data_path = 'custom_data.yaml'
 weights_path = 'best.pt'
 
-N_CAMERAS = 3
+N_CAMERAS = 1
 
 # device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
