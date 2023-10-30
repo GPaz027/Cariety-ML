@@ -260,12 +260,14 @@ def persist_prediction(file, probability, label):
     
 def evaluate_unified_prediction(predictionMatrix):
     all_images_good = True
-    unified_prediction = 0
+    unified_prediction = 10
     for pred in predictionMatrix:
         print (pred)
         if pred[0] <0.5:
             all_images_good = False
             unified_prediction = pred[0]
+        else:
+            unified_prediction = min(unified_prediction, pred[0])
 
         if all_images_good:
             return float(unified_prediction), "good"
@@ -357,7 +359,8 @@ async def predict(ImageInput: ImageInput):
             print(prediction)
 
             #Toma la clasificacion de todas las imagenes y hace una evaluacion final
-            unified_prediction, custom_prediction_labels = evaluate_unified_prediction(prediction) 
+            unified_prediction, custom_prediction_labels = evaluate_unified_prediction(prediction)
+            print(unified_prediction)
 
             try:
                 folder_path ="./img_test"
