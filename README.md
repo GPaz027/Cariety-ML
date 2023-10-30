@@ -17,5 +17,8 @@
 4. En la raíz del proyecto se encuentra el Jupyter Notebook donde se realizó el entrenamiento del modelo predictivo.
 
 **Nota:** Es importante tener el frontend encendido para visualizar los resultados en el panel. Sin embargo, puede verse la respuesta de la predicción en un JSON que devuelve la API sin necesidad de acceder al panel.
+
 **Advertencia**: Si bien es posible correr la API localmente, tener en cuenta que la persistencia en la base de datos no se hará, ya que la instancia se encuentra apagada por motivos de ahorro de costos.
+
 * Autores: Nicolás Cousiño y Gonzalo Paz.
+  
