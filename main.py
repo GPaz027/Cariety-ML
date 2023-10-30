@@ -108,7 +108,7 @@ def get_image_position_if_valid(box):
     IMG_MEDIUM = 512/2
 
     medium_point = (box[0]+box[2])/2
-    if (True or (medium_point < IMG_MEDIUM + 10 and medium_point > IMG_MEDIUM - 10)):
+    if (False or (medium_point < (IMG_MEDIUM + 200) and medium_point > (IMG_MEDIUM - 200))):
         # string =Restnet.classify
         return box
     else:
@@ -260,12 +260,14 @@ def persist_prediction(file, probability, label):
     
 def evaluate_unified_prediction(predictionMatrix):
     all_images_good = True
-    unified_prediction = 0
+    unified_prediction = 10
     for pred in predictionMatrix:
         print (pred)
         if pred[0] <0.5:
             all_images_good = False
             unified_prediction = pred[0]
+        else:
+            unified_prediction = min(unified_prediction, pred[0])
 
         if all_images_good:
             return float(unified_prediction), "good"
@@ -281,7 +283,7 @@ def remove_all_inside_folder(folder_path):
 
 # /-------------------------------------------------------------- Carga de YOLO v7 --------------------------------------------------------------/
 
-# detection_model = load_model()
+detection_model = load_model()
 
 # /-------------------------------------------------------------- Carga de ResNet --------------------------------------------------------------/
 
@@ -325,63 +327,64 @@ async def predict(ImageInput: ImageInput):
         print(f"Error: {e}")
 
     # Filtro de YOLO
-    # detected_object = predict_image(save_path, detection_model)
-    # box = get_image_position_if_valid(detected_object)
+    detected_object = predict_image(save_path, detection_model)
+    box = get_image_position_if_valid(detected_object)
     # Termina Yolo
 
-    # if box:
+    if box:
 
-    all_images_available = True
-    for i in image_availablility_array:
-        all_images_available = all_images_available and i
-    
-    if all_images_available:
-        # Comienza clasificación
-        test_filenames = ["./img_test/" +
-                        file_name for file_name in os.listdir("./img_test/")]
-        custom_data = create_img_batches(test_filenames)
-        base64_array = []
+        all_images_available = True
+        for i in image_availablility_array:
+            all_images_available = all_images_available and i
         
-        for i in range(image_availablility_array.size):
-            image_availablility_array[i] = False
+        if all_images_available:
+            # Comienza clasificación
+            test_filenames = ["./img_test/" +
+                            file_name for file_name in os.listdir("./img_test/")]
+            custom_data = create_img_batches(test_filenames)
+            base64_array = []
+            
+            for i in range(image_availablility_array.size):
+                image_availablility_array[i] = False
 
-        try:
-            for image_path in test_filenames:
-                base64_encoded = encode_image_to_base64(image_path)
-                #print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
-                base64_array.append(base64_encoded)
-        except Exception as e:
-            print(f"Error: {e}")
+            try:
+                for image_path in test_filenames:
+                    base64_encoded = encode_image_to_base64(image_path)
+                    #print(f"Base64 encoded image '{image_path}':\n", base64_encoded)
+                    base64_array.append(base64_encoded)
+            except Exception as e:
+                print(f"Error: {e}")
 
-        prediction = classification_model.predict(custom_data)
-        print(prediction)
+            prediction = classification_model.predict(custom_data)
+            print(prediction)
 
-        #Toma la clasificacion de todas las imagenes y hace una evaluacion final
-        unified_prediction, custom_prediction_labels = evaluate_unified_prediction(prediction) 
+            #Toma la clasificacion de todas las imagenes y hace una evaluacion final
+            unified_prediction, custom_prediction_labels = evaluate_unified_prediction(prediction)
+            print(unified_prediction)
 
-        try:
-            folder_path ="./img_test"
-            #Borra todas las imagenes generadas para la clasificacion
-            remove_all_inside_folder(folder_path)
-        except Exception as e:
-            print(f"Error while removing image: {e}")
+            try:
+                folder_path ="./img_test"
+                #Borra todas las imagenes generadas para la clasificacion
+                remove_all_inside_folder(folder_path)
+            except Exception as e:
+                print(f"Error while removing image: {e}")
 
-        json = {
-            "name": test_filenames[0],
-            "base_64": "data:image/jpeg;base64," + base64_array[0],
-            "label": custom_prediction_labels,
-            "prob": unified_prediction
-            }
+            json = {
+                "name": test_filenames[0],
+                "base_64": "data:image/jpeg;base64," + base64_array[0],
+                "label": custom_prediction_labels,
+                "prob": unified_prediction
+                }
 
-        #persist_prediction(test_filenames, prediction, custom_prediction_labels)
+            persist_prediction(test_filenames, prediction, custom_prediction_labels)
 
-        status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
+            status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
 
-        print(status_code)
+            print(status_code)
 
-        return {
-            "name": test_filenames[0],
-            "base64": "data:image/jpeg;base64,"+base64_array[0],
-            "label": custom_prediction_labels, 
-            "prob": unified_prediction
-            }
+            return {
+                "name": test_filenames[0],
+                "base64": "data:image/jpeg;base64,"+base64_array[0],
+                "label": custom_prediction_labels, 
+                "prob": unified_prediction
+                }
