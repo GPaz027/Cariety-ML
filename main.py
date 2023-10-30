@@ -108,7 +108,7 @@ def get_image_position_if_valid(box):
     IMG_MEDIUM = 512/2
 
     medium_point = (box[0]+box[2])/2
-    if (True or (medium_point < IMG_MEDIUM + 10 and medium_point > IMG_MEDIUM - 10)):
+    if (False or (medium_point < (IMG_MEDIUM + 200) and medium_point > (IMG_MEDIUM - 200))):
         # string =Restnet.classify
         return box
     else:
