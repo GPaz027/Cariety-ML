@@ -376,7 +376,7 @@ async def predict(ImageInput: ImageInput):
                 "prob": unified_prediction
                 }
 
-            #persist_prediction(test_filenames, prediction, custom_prediction_labels)
+            persist_prediction(test_filenames, prediction, custom_prediction_labels)
 
             status_code = send_image_to_microbakend(MICROBACKEND_URL, json)
 
