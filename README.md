@@ -12,9 +12,10 @@
 ## Utilización
 
 1. Clonar repositorio.
-2. En la raíz del projecto, correr `uvicorn main:app --reload` para cargar la API.
-3. Probar mandando el base64 de una imagen en el body de una solicitud HTTP como body a `localhost:8080/predict/`.
-4. En la raíz del proyecto se encuentra el Jupyter Notebook donde se realizó el entrenamiento del modelo predictivo.
+2. Descargar el modelo de Resnet (no está en el repositorio porque es muy pesado) en: https://drive.google.com/file/d/1d1cjaAyWTtqlA1Tkbya_1YpzfqONslZH/view?usp=drive_link y guardarlo dentro de /classification/resnet/
+4. En la raíz del projecto, correr `uvicorn main:app --reload` para cargar la API.
+5. Probar mandando el base64 de una imagen en el body de una solicitud HTTP como body a `localhost:8080/predict/`.
+6. En la raíz del proyecto se encuentra el Jupyter Notebook donde se realizó el entrenamiento del modelo predictivo.
 
 **Nota:** Es importante tener el frontend encendido para visualizar los resultados en el panel. Sin embargo, puede verse la respuesta de la predicción en un JSON que devuelve la API sin necesidad de acceder al panel.
 
