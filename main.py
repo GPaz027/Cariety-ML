@@ -331,6 +331,7 @@ async def predict(ImageInput: ImageInput):
     box = get_image_position_if_valid(detected_object)
     # Termina Yolo
 
+    print("Encontre la caja?:" +  box)
     if box:
 
         all_images_available = True
