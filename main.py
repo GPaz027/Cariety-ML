@@ -328,7 +328,12 @@ async def predict(ImageInput: ImageInput):
 
     # Filtro de YOLO
     detected_object = predict_image(save_path, detection_model)
-    box = get_image_position_if_valid(detected_object)
+
+    #Validar si encontro un objeto, si no devolver el array vacio y no calcular el punto medio
+    if detected_object is not None:
+        box = get_image_position_if_valid(detected_object)
+    else:
+        box = []
     # Termina Yolo
 
     if box:
