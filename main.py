@@ -243,7 +243,7 @@ def persist_prediction(file, probability, label):
         item = {
             'timestamp': {'N': str(timestamp)},
             'image_name': {'S': f"{file}"},
-            'probability': {'N': f"{probability}"},
+            'probability': {'N': f"{probability[0][0]}"},
             'label': {'S': f"{label}"}
         }
 
